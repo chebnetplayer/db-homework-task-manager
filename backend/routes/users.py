@@ -45,3 +45,27 @@ async def register(credentials: Annotated[HTTPBasicCredentials, Depends(security
         except Exception as e:
             logging.info(e)
             raise e
+
+@router.get("/users")
+async def get_users(credentials: Annotated[HTTPBasicCredentials, Depends(security)]):
+    with MongoClient(get_mongo_uri(credentials)) as client:
+        db = client[settings.DB_NAME]
+        try:
+            result = db.command('usersInfo')
+            logging.info(result)
+            l=[]
+            for i in result['users']:
+                l.append(i['user'])    
+            return l
+        except OperationFailure as e:
+            logging.info(e)
+            if e.code == 18:
+                raise HTTPException(status_code=401, detail="Authentication failed")
+            else:
+                logging.info(e)
+                raise e
+        except HTTPException as e:
+            raise HTTPException(status_code=e.status_code, detail=e.detail)
+        except Exception as e:
+            logging.info(e)
+            raise e
