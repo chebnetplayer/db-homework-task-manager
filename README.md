@@ -42,7 +42,7 @@
 * GET/tasks/sort/{field}
 *Получить отсортированный список задач по полю*
 * GET/tasks/search
-*Поиск по полю title(текстовый индекс)*
+*Поиск по полю title(текстовый указатель)*
 ### Поднять приложение локально
 ```
 docker-compose up --build --force-recreate
