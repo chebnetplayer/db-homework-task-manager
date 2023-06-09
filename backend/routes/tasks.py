@@ -198,12 +198,12 @@ async def download_file(credentials: Annotated[HTTPBasicCredentials, Depends(sec
             logging.info(e)  
             raise e    
         
-@router.get("/count_tasks_by_users")
-async def count_tasks_by_users(credentials: Annotated[HTTPBasicCredentials, Depends(security)]):
+@router.get("/tasks/aggregate/{field}")
+async def aggregate_tasks(credentials: Annotated[HTTPBasicCredentials, Depends(security)], field: str):
     with MongoClient(get_mongo_uri(credentials)) as client:
         db = client[settings.DB_NAME]
         try:
-            result = db[settings.TASKS_COLLECTION].aggregate([{ "$group" : { "_id" : "$assigned_to", "count" : {"$sum" :1 } } }])
+            result = db[settings.TASKS_COLLECTION].aggregate([{ "$group" : { "_id" : f"${field}", "count" : {"$sum" :1 } } }])
             return list(result)
         except OperationFailure as e:
             logging.info(e)
@@ -217,3 +217,50 @@ async def count_tasks_by_users(credentials: Annotated[HTTPBasicCredentials, Depe
         except Exception as e:
             logging.info(e)  
             raise e    
+        
+        
+@router.get("/tasks/sort/{field}")
+async def sort_tasks(credentials: Annotated[HTTPBasicCredentials, Depends(security)],field: str):
+    with MongoClient(get_mongo_uri(credentials)) as client:
+        db = client[settings.DB_NAME]
+        try:
+            result = db[settings.TASKS_COLLECTION].find().sort(field)
+            l=[]
+            for i in result:
+                i["_id"] = str(i["_id"])
+                l.append(i)   
+            return l
+        except OperationFailure as e:
+            logging.info(e)
+            if e.code == 18:
+                raise HTTPException(status_code=401, detail="Authentication failed")
+            else:
+                logging.info(e)
+                raise e
+        except HTTPException as e:
+            raise HTTPException(status_code=e.status_code, detail=e.detail)
+        except Exception as e:
+            logging.info(e)  
+            raise e    
+        
+@router.get("/tasks/search")
+def search_tasks_by_title(credentials: Annotated[HTTPBasicCredentials, Depends(security)],title: str) -> List[dict]:
+    with MongoClient(get_mongo_uri(credentials)) as client:
+        db = client[settings.DB_NAME]
+        try:
+            tasks = db[settings.TASKS_COLLECTION].find({"$text": {"$search": title}})
+            logging.info(tasks)
+            return list(tasks)
+        except OperationFailure as e:
+            logging.info(e)
+            if e.code == 18:
+                raise HTTPException(status_code=401, detail="Authentication failed")
+            else:
+                logging.info(e)
+                raise e
+        except HTTPException as e:
+            raise HTTPException(status_code=e.status_code, detail=e.detail)
+        except Exception as e:
+            logging.info(e)  
+            raise e    
+    

@@ -39,6 +39,7 @@ def create_roles():
                 privileges=[{"resource" : {"role" : "readWrite", "db": settings.DB_NAME, "collection": "tasks"},"actions" : ["find", "update", "insert", "remove"]}],
                 roles = []
             )
+        db[settings.TASKS_COLLECTION].create_index([("title", "text")])
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
